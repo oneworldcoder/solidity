@@ -21,6 +21,12 @@ contract ZombieFeeding is ZombieFactory {
 
   KittyInterface kittyContract;
 
+
+  modifier ownerOf(uint _zombieId) {
+    require(msg.sender == zombieToOwner[_zombieId]);
+    _;
+  }
+
   function setKittyContractAddress(address _address) external onlyOwner {
     kittyContract = KittyInterface(_address);
   }
@@ -33,11 +39,8 @@ contract ZombieFeeding is ZombieFactory {
       return (_zombie.readyTime <= now);
   }
 
-  // 1. Make this function internal
-  function feedAndMultiply(uint _zombieId, uint _targetDna, string memory _species) internal {
-    require(msg.sender == zombieToOwner[_zombieId]);
+  function feedAndMultiply(uint _zombieId, uint _targetDna, string memory _species) internal ownerOf(_zombieId) {
     Zombie storage myZombie = zombies[_zombieId];
-    // 2. Add a check for `_isReady` here
     require(_isReady(myZombie));
     _targetDna = _targetDna % dnaModulus;
     uint newDna = (myZombie.dna + _targetDna) / 2;
@@ -45,7 +48,6 @@ contract ZombieFeeding is ZombieFactory {
       newDna = newDna - newDna % 100 + 99;
     }
     _createZombie("NoName", newDna);
-    // 3. Call `triggerCooldown`
     _triggerCooldown(myZombie);
   }
 
@@ -54,5 +56,4 @@ contract ZombieFeeding is ZombieFactory {
     (,,,,,,,,,kittyDna) = kittyContract.getKitty(_kittyId);
     feedAndMultiply(_zombieId, kittyDna, "kitty");
   }
-
 }
